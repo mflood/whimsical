@@ -34,7 +34,7 @@ class _BoardSquare(object):
         self.previous_roll = previous_roll
 
 
-    def __repr__(self):
+    def __str__(self):
         if self.previous_square:
             ret = "roll %d -> %d" % (self.previous_roll, self.square_number)
         else:
@@ -91,7 +91,7 @@ class ChutesAndLaddersSolver(object):
                 except Exception:
                     # this would happen if we tried to access the
                     # hash list oustside of its bounds
-                    print "next_square_number: %d" % next_square_number
+                    print("next_square_number: %d" % next_square_number)
                     raise
 
                 if existing_square == None:
@@ -126,7 +126,7 @@ class ChutesAndLaddersSolver(object):
             solution_list.insert(0, solution_list[0].previous_square)
 
         for spot in solution_list:
-            print spot 
+            print(spot)
 
     def setShortCuts(self):
         self._shortcuts = {
@@ -151,7 +151,7 @@ class ChutesAndLaddersSolver(object):
             98:78,
         }
 
-    def __repr__(self):
+    def __str__(self):
         ret = ""
         for index, board_square in enumerate(self._board):
 
