@@ -4,7 +4,7 @@
 import queue
 
 # number of sides on the die
-DIE_FACES = 20
+DIE_FACES = 6
 
 class _BoardSquare(object):
     """
