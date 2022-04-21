@@ -10,3 +10,6 @@ Find optimum rolls to win chutes and ladders
 
 # anagram
 O(N) algorithm to Check if two strings are anagrams
+
+# advent_of_code
+My solutions to the `advent_of_code` challenges
