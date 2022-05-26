@@ -4,6 +4,7 @@
 import itertools
 import pprint
 
+# this data comes from the output of solving part 1
 data = """
 
 0 (0, 0, 0) face: 0 rotation: 0
