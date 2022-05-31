@@ -15,5 +15,3 @@ O(N) algorithm to Check if two strings are anagrams
 My solutions to the `advent_of_code` challenges
 
 
-
-
