@@ -30,7 +30,6 @@ import yaml
 DATA_ROOT = "./data"
 AOC_API = "https://adventofcode.com"
 
-
 @dataclass
 class Headers:
     cookies: dict
