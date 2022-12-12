@@ -250,6 +250,14 @@ def parse_args(argv=None):
                         required=False,
                         help="Just print out the data")
 
+    parser.add_argument('--part',
+                        dest="part",
+                        choices=[1, 2],
+                        type=int,
+                        default=1,
+                        required=False,
+                        help="Solve part 1 or 2")
+
     parser.add_argument("-yd",
                         dest="year_day",
                         help="YYYYDD the date to process data for")
