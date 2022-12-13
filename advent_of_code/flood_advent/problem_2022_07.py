@@ -59,6 +59,16 @@ class Directory:
             return f"{self.parent.name.rstrip('/')}/{self.name}"
         return "/"
 
+    def smallest_size_greater_than(self, mini):
+        if self.size() < mini:
+            return None
+        smallest = self.size()
+        for d in self.dirs:
+            size = d.smallest_size_greater_than(mini=mini)
+            if size and size < smallest:
+                smallest = size
+        return smallest
+
     def total_of_dir_sizes(self, maxi):
         total = 0
         my_size = self.size()
@@ -138,8 +148,16 @@ def solve_part_1(lines):
 
 def solve_part_2(lines):
 
-    return solve_part_1(lines=lines)
-    pass
+    session = Session()
+
+    for command in lines:
+        session.process(command)
+    session.tree()
+    total_size = 70000000
+    required_size = 30000000
+    used_size = session.root.size()
+    must_free = required_size - (total_size - used_size)
+    return session.root.smallest_size_greater_than(mini=must_free)
 
 
 def solve(lines, part: int):
