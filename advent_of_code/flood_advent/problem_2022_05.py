@@ -2,13 +2,14 @@
     problem_2022_05.py
 """
 
+import re
 import copy
 import itertools
 import logging
 import sys
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import Any, Generator, Iterator, List
+from typing import Any, Generator, Iterator, List, Optional
 
 from flood_advent.utils import (
     LOGGER_NAME,
@@ -23,74 +24,205 @@ from flood_advent.utils import (
 logger = logging.getLogger(LOGGER_NAME)
 
 
+class EndOfCratesException(Exception):
+    pass
+
+
 @dataclass
-class Range:
-    my_range_string: str
-
-    @property
-    def min(self) -> int:
-        return int(self.my_range_string.split("-")[0])
-
-    @property
-    def max(self) -> int:
-        return int(self.my_range_string.split("-")[1])
-
-    def contains(self, number: int) -> bool:
-        return self.min <= number and self.max >= number
-
-    def contains_range(self, other_range) -> bool:
-        return self.min <= other_range.min and self.max >= other_range.max
-
-    def overlaps_range(self, other_range) -> bool:
-        return self.max >= other_range.min and self.min <= other_range.max
+class Crate:
+    crate_id: str
 
 
-def print_range_pair(r1: Range, r2: Range):
+@dataclass
+class Stack:
+    stack_id: int
+    crates: List[Crate]
 
-    for r in [r1, r2]:
-        buffer = []
-        for x in range(max(r1.max + 1, r2.max + 1, 10)):
-            if r.contains(x):
-                buffer.append(str(x))
+
+@dataclass
+class CargoShip:
+    stack_dict: dict[int, Stack]
+
+    def push(self, crates: List[Crate], to_stack: int):
+        print(f"pushing {crates} onto stack {to_stack}")
+        stack = self.stack_dict[to_stack]
+        stack.crates.extend(crates)
+
+    def pull(self, num: int, from_stack: int):
+        print(f"pulling {num} from stack {from_stack}")
+        stack = self.stack_dict[from_stack]
+        print(stack)
+        return_stack = []
+        for x in range(num):
+            crate = stack.crates.pop()
+            print(f"popped {crate}")
+            return_stack.append(crate)
+        return return_stack
+
+    def get_max_height(self):
+        max_height = 0
+        for stack in self.stack_dict.values():
+            height = len(stack.crates)
+            if height > max_height:
+                max_height = height
+
+        return max_height
+
+    def get_crates_in_row(self, row_from_bottom):
+        crate_row = []
+        for x in range(len(self.stack_dict)):
+            stack = self.stack_dict[x + 1]
+            try:
+                crate = stack.crates[row_from_bottom]
+                crate_row.append(crate)
+            except IndexError:
+                crate_row.append(None)
+        return crate_row
+
+    def get_top_crates(self) -> List[Optional[Crate]]:
+        return_list = []
+        for x in range(len(self.stack_dict)):
+            stack_id = x + 1
+            stack = self.stack_dict[stack_id]
+            if stack.crates:
+                return_list.append(stack.crates[-1])
             else:
-                buffer.append(".")
+                return_list.append(None)
 
-        buffer.append(" ")
-        buffer.append(r.my_range_string)
-        print("".join(buffer))
-    print("")
+        return return_list
+
+    def print(self):
+        height = self.get_max_height()
+        for distance_from_top in range(height + 1):
+            crate_list = self.get_crates_in_row(height - distance_from_top)
+            as_string = ""
+            for item in crate_list:
+                if item:
+                    as_string += "[" + item.crate_id + "] "
+                else:
+                    as_string += "    "
+            print(as_string)
+
+        index_string = ""
+        for x in range(len(self.stack_dict)):
+            index_string += f" {x+1}  "
+        print(index_string)
 
 
-def get_ranges(line: str) -> List[Range]:
-    r1, r2 = line.split(",")
-    range1 = Range(r1)
-    range2 = Range(r2)
-    return [range1, range2]
+def extract_crates_from_line(line: str) -> dict[int, Crate]:
+
+    if "[" not in line:
+        raise EndOfCratesException()
+
+    print(f"extracting crates from {line}")
+
+    stack_dict = {}
+    pos = 0
+    stack_number = 1
+    while pos < len(line):
+        if line[pos] != "[":
+            stack_number += 1
+            pos += 4
+            print(f"empty advancing to {pos} for stack {stack_number}")
+        elif line[pos] == "[":
+            end = line.find("]", pos)
+            crate_id = line[pos + 1 : end]
+            stack_dict[stack_number] = Crate(crate_id=crate_id)
+            print(f"found create at {pos} for stack {stack_number}")
+            pos += 4
+            stack_number += 1
+        else:
+            raise ValueError(pos)
+
+    return stack_dict
+
+
+def build_ship(lines: List[str]) -> CargoShip:
+
+    stacks = {}
+    for line in lines:
+        try:
+            stack_dict = extract_crates_from_line(line=line)
+            for stack_id, crate in stack_dict.items():
+                stacks.setdefault(stack_id, Stack(stack_id=stack_id, crates=[]))
+                stacks[stack_id].crates.insert(0, crate)
+        except EndOfCratesException:
+            break
+
+    cargo_ship = CargoShip(stack_dict=stacks)
+
+    return cargo_ship
+
+
+@dataclass
+class Command:
+    num_to_move: int
+    from_stack: int
+    to_stack: int
+
+
+def get_commands(lines) -> List[Command]:
+    in_commaonds = False
+    commands = []
+    for line in lines:
+        if line.startswith("move"):
+            match = re.match("move (\d+) from (\d+) to (\d+)", line)
+            num_to_move = int(match.groups()[0])
+            from_stack = int(match.groups()[1])
+            to_stack = int(match.groups()[2])
+            command = Command(
+                num_to_move=num_to_move, from_stack=from_stack, to_stack=to_stack
+            )
+            commands.append(command)
+    return commands
+
+
+def run_command(cargo_ship: CargoShip, command: Command):
+
+    crates = cargo_ship.pull(num=command.num_to_move, from_stack=command.from_stack)
+    cargo_ship.push(crates=crates, to_stack=command.to_stack)
+    cargo_ship.print()
+
+
+def run_command_9001(cargo_ship: CargoShip, command: Command):
+
+    crates = cargo_ship.pull(num=command.num_to_move, from_stack=command.from_stack)
+    crates.reverse()
+    cargo_ship.push(crates=crates, to_stack=command.to_stack)
+    cargo_ship.print()
 
 
 def solve_part_1(lines):
 
-    total = 0
-    for line in lines:
-        r1, r2 = get_ranges(line)
-        print_range_pair(r1, r2)
-        if r1.contains_range(r2) or r2.contains_range(r1):
-            total += 1
+    cargo_ship = build_ship(lines=lines)
+    print(cargo_ship)
+    cargo_ship.print()
+    commands = get_commands(lines=lines)
+    for command in commands:
+        run_command(cargo_ship=cargo_ship, command=command)
 
-    return total
+    top_crates = cargo_ship.get_top_crates()
+    print(top_crates)
+    ids = [x.crate_id for x in top_crates if x]
+    as_string = "".join(ids)
+    return as_string
 
 
 def solve_part_2(lines):
 
     print("solving part 2")
-    total = 0
-    for line in lines:
-        r1, r2 = get_ranges(line)
-        print_range_pair(r1, r2)
-        if r1.overlaps_range(r2):
-            total += 1
+    cargo_ship = build_ship(lines=lines)
+    print(cargo_ship)
+    cargo_ship.print()
+    commands = get_commands(lines=lines)
+    for command in commands:
+        run_command_9001(cargo_ship=cargo_ship, command=command)
 
-    return total
+    top_crates = cargo_ship.get_top_crates()
+    print(top_crates)
+    ids = [x.crate_id for x in top_crates if x]
+    as_string = "".join(ids)
+    return as_string
 
 
 def solve(lines, part: int):

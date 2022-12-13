@@ -294,7 +294,7 @@ class Input():
         self._logger.info("Reading lines from '%s'", filepath)
         with open(filepath, "r") as handle:
             for line in handle:
-                line = line.strip()
+                line = line.rstrip()
                 yield line
 
     def get_chars(self) -> List[str]:
