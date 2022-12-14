@@ -1,2 +1,2 @@
 export ADVENT_YEAR=2022
-export ADVENT_DAY=7
+export ADVENT_DAY=8
