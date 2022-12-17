@@ -25,9 +25,10 @@ logger = logging.getLogger(LOGGER_NAME)
 
 class BridgeMatrix:
 
-    def __init__(self):
-        self.head_pos = (0, 0)
-        self.tail_pos = (0, 0)
+    def __init__(self, num_knots):
+        self.knots = []
+        for x in range(num_knots):
+            self.knots.append((0,0))
         self.xy_matrix = {(0, 0): 1}
 
     def get_tail_visit_counts(self):
@@ -39,23 +40,33 @@ class BridgeMatrix:
         return total
 
     def move_head(self, adjustment_tuple):
-        self.head_pos = (self.head_pos[0] + adjustment_tuple[0], self.head_pos[1] + adjustment_tuple[1])
-        self.xy_matrix.setdefault(self.head_pos, 0)
+        #print(f"moving head {adjustment_tuple}")
+        self.knots[0] = (self.knots[0][0] + adjustment_tuple[0], self.knots[0][1] + adjustment_tuple[1])
+        self.xy_matrix.setdefault(self.knots[0], 0)
 
-        #print(self) 
+        #print(self.knots)
+        #print(self)
 
-        # move tail to follow
-        x_diff = self.head_pos[0] - self.tail_pos[0]
-        y_diff = self.head_pos[1] - self.tail_pos[1]
+        for x in range(1, len(self.knots)):
+            #print(f"should move knot {x}?")
+              
+            # move knot to follow
+            x_diff = self.knots[x-1][0] - self.knots[x][0]
+            y_diff = self.knots[x-1][1] - self.knots[x][1]
+            #print(f"xdiff: {x_diff} ydiff: {y_diff}")
 
-        if (abs(x_diff) >= 2) or (abs(y_diff) >= 2):
-            x_diff = x_diff - int(x_diff / 2.0)
-            y_diff = y_diff - int(y_diff / 2.0)
-            tail_movement = (x_diff, y_diff)
-            self.tail_pos = (self.tail_pos[0] + tail_movement[0], self.tail_pos[1] + tail_movement[1])
-            self.xy_matrix.setdefault(self.tail_pos, 0)
-            self.xy_matrix[self.tail_pos] += 1
-            #print(self)
+            if (abs(x_diff) >= 2) or (abs(y_diff) >= 2):
+                #print("Yes - move!")
+                x_diff = x_diff - int(x_diff / 2.0)
+                y_diff = y_diff - int(y_diff / 2.0)
+                knot_movement = (x_diff, y_diff)
+                self.knots[x] = (self.knots[x][0] + knot_movement[0], self.knots[x][1] + knot_movement[1])
+                if x == len(self.knots) - 1:
+                    self.xy_matrix.setdefault(self.knots[x], 0)
+                    self.xy_matrix[self.knots[x]] += 1
+            else:
+                #print("No - stay!")
+                pass
 
 
     def perform_motions(self, motion_string):
@@ -83,26 +94,33 @@ class BridgeMatrix:
         for y in y_vals:
             for x in range(min_x, max_x + 1):
                 val = self.xy_matrix.get((x, y))
-                if (x, y) == self.head_pos:
+                if (x, y) == self.knots[0]:
                     ret += "H"
-                elif (x, y) == self.tail_pos:
-                    ret += "T"
-                elif (x, y) == (0, 0):
-                    ret += "s"
-                elif val is not None:
-                    if val == 0:
-                        ret += "-"
-                    else:
-                        ret += '#'
                 else:
-                    ret += "."
+                    matched_a_knot = False
+                    for knot_id in range(1, len(self.knots)):
+                        if (x, y) == self.knots[knot_id]:
+                            ret += str(x)
+                            matched_a_knot = True
+                            break
+
+                    if not matched_a_knot:
+                        if (x, y) == (0, 0):
+                            ret += "s"
+                        elif val is not None:
+                            if val > 0:
+                                ret += '#'
+                            else:
+                                ret += "."
+                        else:
+                            ret += "."
             ret += "\n"
         return ret
 
 
 def solve_part_1(lines):
 
-    matrix = BridgeMatrix()
+    matrix = BridgeMatrix(num_knots = 2)
     for line in lines:
         matrix.perform_motions(motion_string=line)
     print(matrix)
