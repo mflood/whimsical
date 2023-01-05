@@ -125,11 +125,14 @@ def solve_part_1(lines):
         matrix.perform_motions(motion_string=line)
     print(matrix)
     return matrix.get_tail_visit_counts()
-    pass
+
 
 def solve_part_2(lines):
-
-    pass
+    matrix = BridgeMatrix(num_knots = 10)
+    for line in lines:
+        matrix.perform_motions(motion_string=line)
+    print(matrix)
+    return matrix.get_tail_visit_counts()
 
 
 
