@@ -13,16 +13,14 @@ api_keys = [
     "prettyplease"
 ]  # This is encrypted in the database
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")  # use token authentication
 
-
-def api_key_auth(api_key: str = Depends(get_api_key)):
-    if api_key not in api_keys:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Forbidden"
-        )
-
+#def api_key_auth(api_key: str = Depends(get_api_key)):
+#    if api_key not in api_keys:
+#        raise HTTPException(
+#            status_code=status.HTTP_401_UNAUTHORIZED,
+#            detail="Forbidden"
+#        )
+#
 
 app = FastAPI()
 
@@ -40,8 +38,21 @@ async def geocode(address_in: AddressIn):
     longitude=13)
     return resp
 
-@app.get("/safe/geocode", response_model=GeoOut, dependencies=[Depends(api_key_auth)])
+#@app.get("/safe/geocode", response_model=GeoOut, dependencies=[Depends(api_key_auth)])
+#async def geocode(address: str, country_code: str): 
+#    resp = GeoOut(latitude=10.1, 
+#    longitude=13)
+#    return resp
+#
+
+@app.get("/safe/geocode", response_model=GeoOut, dependencies=[Depends(get_api_key)])
 async def geocode(address: str, country_code: str): 
     resp = GeoOut(latitude=10.1, 
     longitude=13)
     return resp
+
+
+
+
+
+# end
