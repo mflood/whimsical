@@ -1,0 +1,5 @@
+ types-requests
+ mypy
+ isort
+ pylint
+ types-beautifulsoup4
