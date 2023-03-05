@@ -6,6 +6,9 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
+
+from word_list import GameWords, get_game_words
+
 #options = webdriver.ChromeOptions()
 #options.add_argument('--ignore-certificate-errors')
 #options.add_argument('--incognito')
@@ -18,7 +21,6 @@ from selenium import webdriver
 #
 #soup = BeautifulSoup(source_code,'html')
 #article_block =soup.find('div',class_='words')
-
 
 
 def build_options() -> webdriver.chrome.options.Options:
@@ -78,54 +80,63 @@ class CommonWordFinder:
         self._related_words_client = related_words_client
 
     
-    def find_common_words(self, team_words: List[str], enemy_words: List[str], neutral_words: List[str]):
+    def find_common_words(self, my_team_words: List[str], enemy_words: List[str], neutral_words: List[str]):
     
-        team_words = [w.lower() for w in team_words]
+        my_team_words = [w.lower() for w in my_team_words]
         enemy_words = [w.lower() for w in enemy_words]
         neutral_words = [w.lower() for w in neutral_words]
 
+        all_words = my_team_words + enemy_words + neutral_words
         result_dict = {}
-        for team_word in team_words:
+        for team_word in my_team_words:
             related_words = self._related_words_client.get_related_words(word=team_word)
             for related_word in related_words:
+                if related_word in all_words:
+                    continue
                 result_dict.setdefault(related_word, {"good": [], "bad": [], "neutral": []})
                 result_dict[related_word]["good"].append(team_word)
 
         for enemy_word in enemy_words:
             related_words = self._related_words_client.get_related_words(word=enemy_word)
             for related_word in related_words:
+                if related_word in all_words:
+                    continue
+                result_dict.setdefault(related_word, {"good": [], "bad": [], "neutral": []})
                 result_dict.setdefault(related_word, {"good": [], "bad": [], "neutral": []})
                 result_dict[related_word]["bad"].append(enemy_word)
-
 
         for neutral_word in neutral_words:
             related_words = self._related_words_client.get_related_words(word=neutral_word)
             for related_word in related_words:
+                if related_word in all_words:
+                    continue
+                result_dict.setdefault(related_word, {"good": [], "bad": [], "neutral": []})
                 result_dict.setdefault(related_word, {"good": [], "bad": [], "neutral": []})
                 result_dict[related_word]["neutral"].append(enemy_word)
 
+        return result_dict
 
-        for k, v in result_dict.items():
-            if len(v["good"]) > 1:
-                print(f"{k}: {v}")
-                if len(v["bad"]) > 0:
-                    print("NOPE!")
-
-
-all_words = []
-with open("worlist.txt", "r", encoding="utf-8") as handle:
-    for line in handle:
-        all_words.append(line.lower().strip())
-
-random.shuffle(all_words)
+def print_team_a_results(related_dict):
     
-team_a = all_words[0:9]
-team_b = all_words[9:17]
-neutral = all_words[17:25]
+    good_words = []
+    bad_words = []
+    for k, v in related_dict.items():
+        if len(v["good"]) > 0:
+            print(f"{k}: {v}")
+            if len(v["bad"]) or len(v["neutral"]):
+                bad_words.append(k)
+            else:
+                good_words.append(k)
+    bad_words.sort()
+    good_words = sorted(good_words, key=lambda x: f"{len(related_dict[x]['good'])}-{x}")
+    
+    for word in good_words:
+        print(f"{word}: {', '.join(related_dict[word]['good'])}")
 
-print(team_a)
-print(team_b)
-print(neutral)
+    print(bad_words)
+
+
+
 
 options = build_options()
 driver = build_driver(options=options)
@@ -133,5 +144,7 @@ client = RelatedWordsClient(driver=driver)
 
 finder = CommonWordFinder(related_words_client=client)
 
-finder.find_common_words(team_words=team_a, enemy_words=team_b, neutral_words=neutral)
+game_words: GameWords = get_game_words()
+related_dict = finder.find_common_words(my_team_words=game_words.team_a, enemy_words=game_words.team_b, neutral_words=game_words.neutral)
+print_team_a_results(related_dict=related_dict)
 
